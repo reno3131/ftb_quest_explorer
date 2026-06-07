@@ -1,0 +1,2198 @@
+
+<html>
+<script src="https://cdn.jsdelivr.net/npm/jszip@latest/dist/jszip.min.js" data-cfasync="false"></script>
+<script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js" data-cfasync="false"></script>
+<script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.panzoom.js@latest/dist/svg.panzoom.min.js" data-cfasync="false"></script>
+<style>
+body {
+	height: 100vh;
+    width: 100vw;
+    margin: 0;
+	background: rgba(50, 50, 50, 0.04);
+}
+#controlsWrap {
+	padding: 8px;
+	height: calc(100% - calc(2 * 8px));
+    width: calc(100% - calc(2 * 8px));
+}
+#controls {
+	display:flex;
+	flex-wrap: wrap;
+    align-content: stretch;
+    justify-content: flex-start;
+    align-items: stretch;
+    flex-direction: row;
+	width: 100%;
+    height: inherit;
+}
+#controlshide {
+	display:none;
+}
+.wide {
+	width:100%;
+	height: 2em;
+	background: rgba(255, 255, 255, 0.8);
+    border-radius: 0.3em;
+    //padding: 0.25em;
+}
+.wide * {
+	vertical-align: -webkit-baseline-middle;;
+}
+.chapters {
+    overflow-y: auto;
+    height: inherit;
+}
+.group_quest {
+	list-style:none;
+	border-top:1px solid black;
+	padding:0.5em 0 0.5em;
+	display: flex;
+    flex-direction: column;
+	order: 99;
+}
+li.group_quest:first-child {
+  background:rgba(255,255,255,0.1);
+}
+#groups {
+	list-style:none;
+	display: flex;
+    flex-direction: column;
+	padding: 0;
+}
+.quest {
+	padding:0.1em 0 0 1em;
+	width:fit-content;
+	min-width:10%;
+	flex-grow:1;
+}
+#display {
+	flex-grow:2;
+	height: calc(100% - 0.5em);
+    width: min-content;
+}
+.ctl {
+	display:flow-root;
+	height: calc(100% - 0.5em);
+	width: fit-content;
+}
+#svg {
+	anchor-name: --svg;
+}
+#questoverlay {
+	height: 60%;
+    width: 60%;
+    background: rgba(211, 211, 211, 0.98);
+    border: rgba(0, 0, 0, 0.6) solid 1px;
+    border-radius: 5px;
+	display:none;
+	overflow-y: auto;
+    position: absolute;
+    top: 20%;
+    left: 20%;
+	position-anchor: --svg;
+}
+.tasks, .rewards {
+	width: calc(50% - 1px);
+	// padding: 1em;
+	display: flex;
+	flex-direction: column;
+    align-content: flex-start;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.tasks {
+	float:left;
+ 	border-right: black 1px solid;
+	clear: both;
+}
+#quest h1 {
+	text-align:center;	
+	border-bottom: black 1px solid;
+}
+#messages {
+	background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+	position: absolute;
+	padding:0.5em;
+	bottom: 10%;
+    right: 2%;
+	display:none;
+}
+#packinfo {
+	background: rgba(255, 255, 255, 0.5);
+    border-radius: 5px;
+	position: absolute;
+	padding:0.5em;
+	bottom: 2%;
+    right: 2%;
+	display:none;
+}
+#packinfo h1, #packinfo h2 {
+	margin:0;
+}
+#search {
+	background: rgba(255, 255, 255, 0.5);
+    border-radius: 5px;
+	position: absolute;
+	padding:0.5em;
+	top: calc(2% + 2em);
+    right: 2%;
+	display:none;
+}
+.tasks_title, .rewards_title, .quest_desc {
+	width:100%;
+	text-align:center;
+}
+.quest_desc {
+	clear :both;
+	border-top: black 1px solid;
+}
+.right {
+	float:right;
+}
+#galeryoverlay {
+	background: rgba(0, 0, 0, 0.6);
+    border-radius: 5px;
+	position: absolute;
+	padding:0.5em;
+	top: 10%;
+    left: 10%;
+	display:none;
+}
+.quest_link_hl {
+	// animation: 3s hideshow 1s ease infinite;
+	// fill: red;
+	stroke: #4A90E2;
+	stroke-width: 3;
+  
+	/* 8px dash, 8px gap */
+	stroke-dasharray: 8 8; 
+
+	/* Animate the offset */
+	animation: march 1s linear infinite;
+}
+.reward_xp::before {
+	content : " ";
+	display : inline-block;
+	//background : #339C43;
+	background : radial-gradient(circle, rgba(51,156,67,1) 0%, rgba(0,242,28,1) 50%, rgba(27.135.43.1) 100%);
+	padding: 0.5em;
+	border-radius: 0.5em;
+}
+.reward_xp_level::before {
+	content : "+";
+	display : inline-block;
+	//background : #339C43;
+	background : radial-gradient(circle, rgba(51,156,67,1) 0%, rgba(0,242,28,1) 50%, rgba(27.135.43.1) 100%);
+	padding: 0.5em;
+	border-radius: 0.3em;
+}
+.reward_item, .task_item {
+	display: inline-block;
+	background: #8B8B8B no-repeat center center / 32px 32px;
+	border: 0.1em solid;
+	border-color : #373737 #FFF #FFF #373737;
+	min-width: 4em;
+	height:4em;
+	overflow-wrap:break-word;
+}
+
+select,
+::picker(select) {
+  appearance: base-select;
+}
+
+//https://stackoverflow.com/a/77796790
+[data-tooltip]:hover::after {
+  display: block;
+  position: absolute;
+  content: attr(data-tooltip);
+  border: 1px solid black;
+  background: #eee;
+  padding: .25em;
+}
+
+//https://codepen.io/stephenpaton-tech/full/JjRvGmY
+/* ===== Scrollbar CSS ===== */
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.8) #ffffff;
+  }
+
+  /* Chrome, Edge, and Safari */
+  *::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgba(50, 50, 50, 0.04);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    border: 3px solid #ffffff;
+  }
+
+@keyframes hideshow {
+  0% { opacity: 1; }
+  25% { opacity: 0.75; }
+  50% { opacity: 0.5; }
+  75% { opacity:0.25; }
+  100% { opacity: 0; }
+}
+
+@keyframes march {
+  to {
+    stroke-dashoffset: 16; /* Must match total pattern length (8+8) */
+  }
+}
+
+// Thank you : https://github.com/IdreesInc/Monocraft
+@font-face {
+    font-family: 'Monocraft';
+    src: url('https://cdn.jsdelivr.net/gh/IdreesInc/Monocraft@main/dist/Monocraft-ttf/Monocraft.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/*! mcformat v1.3.0 | MIT License | github.com/yusshu/mcformat */
+/*
+ * Minecraft Colors and Formats
+ * =========================================================
+ */
+
+.mc-black        { color: #000000; text-shadow: var(--soffy) var(--soffx) #000000; }
+.mc-dark-blue    { color: #0000AA; text-shadow: var(--soffy) var(--soffx) #00002A; }
+.mc-dark-green   { color: #00AA00; text-shadow: var(--soffy) var(--soffx) #002A00; }
+.mc-dark-aqua    { color: #00AAAA; text-shadow: var(--soffy) var(--soffx) #002A2A; }
+.mc-dark-red     { color: #AA0000; text-shadow: var(--soffy) var(--soffx) #2A0000; }
+.mc-dark-purple  { color: #AA00AA; text-shadow: var(--soffy) var(--soffx) #2A002A; }
+.mc-gold         { color: #FFAA00; text-shadow: var(--soffy) var(--soffx) #2A2A00; }
+.mc-gray         { color: #AAAAAA; text-shadow: var(--soffy) var(--soffx) #2A2A2A; }
+.mc-dark-gray    { color: #555555; text-shadow: var(--soffy) var(--soffx) #151515; }
+.mc-blue         { color: #5555FF; text-shadow: var(--soffy) var(--soffx) #15153F;}
+.mc-green        { color: #55FF55; text-shadow: var(--soffy) var(--soffx) #153F15; }
+.mc-aqua         { color: #55FFFF; text-shadow: var(--soffy) var(--soffx) #153F3F; }
+.mc-red          { color: #FF5555; text-shadow: var(--soffy) var(--soffx) #3F1515; }
+.mc-light-purple { color: #FF55FF; text-shadow: var(--soffy) var(--soffx) #3F153F; }
+.mc-yellow       { color: #FFFF55; text-shadow: var(--soffy) var(--soffx) #3F3F15; }
+.mc-white        { color: #FFFFFF; text-shadow: var(--soffy) var(--soffx) #3F3F3F; }
+.mc-reset        { color: #000000; text-shadow: var(--soffy) var(--soffx) #000000; }
+
+/* .mc-magic { empty because no styles to apply here } */
+/* .mc-hex { empty } */
+.mc-strikethrough { text-decoration: line-through; }
+.mc-underline { text-decoration: underline; }
+.mc-bold { font-family: 'minecraft-bold', monospace; }
+.mc-italic { font-family: 'minecraft-italic', monospace; }
+.mc-bold .mc-italic, .mc-italic .mc-bold { font-family: 'minecraft-bolditalic', monospace; }
+
+/*
+ * Base Styles
+ * =========================================================
+ */
+.mc-root {
+    font-family: 'Monocraft', monospace;
+    /* Shadow Offset X and Y for texts */
+    --soffx: 0.02rem;
+    --soffy: 0.02rem;
+}
+</style>
+<header>
+</header>
+<div id="controlsWrap">
+    <div id="controls">
+        <div class="wide">
+            <label>Load files (.zip with ftb_quest folder or plain .json/.snbt)</label>
+            <input id="files" type="file" multiple/>
+			<div id="controlshide" >
+				<label for="lang">Selectionez la langue</label>
+				<select name="lang" id="langSelect" onchange="changeLang()">
+				</select>
+				<label for="showTree">Montrer l'arbre complet</label>
+				<input type="checkbox" id="showTree" name="drone" value="showTree" checked />
+				<span id="showGallery" onclick="showGallery()" >Voir la gallery d'image chargée</span>
+			</div>
+        </div>
+		<div class="ctl">
+
+			<div class="chapters">
+				<ul id="groups">
+				</ul>
+			</div>
+		</div>
+		<div id="display">
+			<div id="questoverlay">
+				<div class="right" onclick="closequest()">
+				X
+				</div>
+				<div id="quest">
+				</div>
+			</div>
+			<div id="svg">
+			</div>
+		</div>
+
+    </div>
+	<div id="packinfo">
+		<div id="packtitle"></div>
+		<div id="chaptertitle"></div>
+	</div>
+	<div id="search">
+		<input type="search" id="searchbox" oninput="search_quest()" placeholder="Search Name or ID" />
+		<div id="searchresult">
+		</div>
+	</div>
+	<div id="messages">
+	</div>
+	<div id="galeryoverlay">
+		<div class="right" onclick="closegallery()">
+				X
+		</div>
+		<div id="galery">
+		</div>
+	</div>
+</div>
+<script>
+
+/*  https://ae2.jubnl.ch/ <-- Thanks you, you where the inspiration on where to start*/
+
+// ========== CONSTANTS ==========
+const byId = id => document.getElementById(id);
+const DEBUG = new URLSearchParams(location.search).has('debug') &&
+              new URLSearchParams(location.search).get('debug') !== '0';
+const page = {};
+const chapters = [];
+const rewards_loot = [];
+let curQuest = undefined;
+let curChap = undefined;
+let allQuest = {};
+//const svg = document.getElementById("svg");
+const select = byId("langSelect");
+const showTree = byId("showTree");
+const questoverlay = byId("questoverlay");
+const ImgMap = new Map();
+
+
+const availLang = [];
+let splitlang = false;
+
+const questColors = {
+	quest_fill:'#6e6e6e', 
+	quest_font:'#f00',
+	quest_gradient_start:'#b5b5b5',
+	quest_gradient_end:'#6e6e6e'
+};
+
+// ========== GENERAL START AND LOADING ==========
+/*
+/ Load ZIP files and simple SNBT and gather infos 
+/ to fill the basic layout
+/ 
+/ @input : files
+/ @use : page
+*/
+async function loadFiles(files) { 
+	write_message("Loading files",8);
+    const zips = [], plains = [];
+    for (const f of files) (f.name.toLowerCase().endsWith('.zip') ? zips : plains).push(f); 
+
+    /* FOR SINGLE FILE */
+    for (const f of plains) {
+        const text = await f.text();
+		if (f.name.endsWith('.snbt')) page[f.name] = processSNBT(text);
+    }
+
+    /* FOR ZIP FILES */
+    for (const f of zips) {
+        const zip = await JSZip.loadAsync(f);
+        for (const [p, e] of Object.entries(zip.files)) {
+            if (!e.dir && /^.+ftbquests\/quests\/(.*)\.snbt$/i.test(p)) {
+                if (DEBUG) {
+					console.log("New quest config found : " + p);
+				}
+                const text = await e.async('string');
+                page[p] = processSNBT(text,p);
+            }
+			if (!e.dir && /\.(?:png|jpe?g|gif|webp)/i.test(p)) {
+					e.async('base64').then(function (base64) {
+						let mime = detectMimeType(base64)
+						if (mime) {
+							ImgMap.set(getResourceLocation(p), "data:" + mime + ";charset=utf8;base64," + base64);
+						}
+					});
+				//					}
+			}
+        }
+       
+    }
+    write_message("Getting languages and showing chapters",2);
+	// Get lang, set availLang and splitlang
+	getlanguages();
+	// Gather lootreward in array.
+	process_LootRewards();
+	// Get Chapter
+	showchapters();
+	// unlock config
+	byId("controlshide").style.display = "inline";
+
+}
+
+
+/*
+/ Gather languages from the parsed config files
+/ and put them in the selector
+/ 
+/ @input : onload
+/ @use : page, select
+/ @set: availLang
+*/
+function getlanguages() {
+	let values = {};
+	for (key of Object.keys(page)) {
+		let langregex = /\/(\w{2}_\w{2})(?:.snbt|\/)/;
+		if (langregex.test(key)) {
+			let result = key.match(langregex);
+			if (result) {
+				//console.log(result);
+				if (availLang.includes(result[1])) {
+					splitlang = true;
+				} else {
+					availLang.push(result[1]);
+					values[result[1]] = key;
+				}
+			}
+		}
+	}
+	for (const langKey of availLang) {
+		const opt = document.createElement("option");
+		opt.innerText = langKey
+		if (langKey === "en_us") {
+			opt.selected = true;
+		}
+		if (splitlang) {
+			opt.value = langKey;
+		} else {
+			opt.value = values[langKey];
+		}
+		select.appendChild(opt);
+	}
+}
+
+/*
+/ Fill array of const rewards_loot to associate id to reward tables
+/
+/ 
+/ @input : on_loadFiles()
+/ @use : page, rewards_loot
+*/
+function process_LootRewards() {
+	for (key of Object.keys(page)) {
+		if (/\/reward_tables\/.*/.test(key)) {
+			if (page[key] instanceof Array) {
+				for (reward in page[key]) {	
+					rewards_loot[reward.id] = reward;
+				}
+			} else {
+				rewards_loot[page[key].id] = page[key];
+			}
+		}
+	}
+	if (DEBUG) {
+		console.log(rewards_loot);
+	}
+}
+
+/*
+/ Show chapters form the parsed config file 
+/ and put them in the <ul>
+/ 
+/ @input : onload
+/ @use : page, chapters
+*/
+function showchapters() {
+	//get pack name
+	getName();
+	// Building groups
+	let groups = document.getElementById("groups");
+	for (key of Object.keys(page)) {
+		if (/chapter_groups.snbt/.test(key)) {
+			for (chapter of page[key].chapter_groups) {
+				//console.log(chapter);
+				groups.appendChild(addToDom("li", getLang("chapter_group", chapter.id, "title", key) , "group_quest", chapter.id));
+			}
+		}
+	}
+	// Adding chapter 
+	for (key of Object.keys(page)) {
+		if (/quests\/chapters/gimv.test(key)) {
+			chapters.push(page[key]);
+			if ("group" in page[key]) {
+				chaptergroup = page[key].group
+				obj = document.getElementById(chaptergroup);
+			} else {
+				obj = groups
+			}
+			let child = obj.appendChild(addToDom("li", getLang("chapter",page[key].id,"title", key), "quest", key, null, null, null, " order:" + page[key].order_index + ";"));  //element, text, className, Id, title, src, alt, style)
+			child.addEventListener('click', function() {
+				chapter_click(this.id);
+			});
+			///populate quest name
+			for (const quest of page[key].quests) {
+				title = getLang("quest", quest.id, "title", key);
+				if (title) {
+					allQuest[quest.id] = { "formated": title, "raw":title.textContent, "filepath":key }; 
+				} else {
+					allQuest[quest.id] = { "formated": quest.id, "raw":"", "filepath":key }; 
+				}
+			}
+			byId("search").style.display = "block";
+		}
+	}
+	chapters.sort(function( a, b) {
+		return a.group - b.group || a.order_index - b.order_index
+	});
+	//console.log(chapters);
+	
+}
+
+/*
+/ Get Lang string from the parsed SNBT files
+/ should support multilang separated files
+/ 
+/ @input : file_path
+/ @use : page, select
+/
+*/
+function getLang(filetype, id, type, filepath, solo) {
+	const lang = select.options[select.selectedIndex];
+	let objName = "";
+	let simplepath = "";
+	let simpledefault = ""
+	let retour = []
+	if (splitlang) {
+		if (typeof solo === "undefined") {
+			simplepath = filepath.replace(/\/quests\/(.*)(\/.*)?/gimv, "\/quests\/lang\/"+ lang.value +"\/$1" )
+			simpledefault = filepath.replace(/\/quests\/(.*)(\/.*)?/gimv, "\/quests\/lang\/en_us\/$1" ) // set 	below as whel if default is not en_us
+			let defaultchap = simplepath.replace(/(.*\/)(.*\/)(.*)(\..*)/gimv, "$1chapter$4");
+			simplepath = simplepath.replace(/chapter_groups/gimv, "chapter_group"); // not named the same, bug probably
+			if (type === undefined) { // && DEBUG
+				objName = filetype + "." + id;
+				for (const key in page[simplepath]) {
+					if (key.includes(objName)) {
+						retour.push({"key":key, "text":page[simplepath][key], "path": simplepath});
+					}
+				}
+				for (const key in page[defaultchap]) {
+					if (key.includes(objName)) {
+						retour.push({"key":key, "text":page[defaultchap][key], "path": defaultchap});
+					}
+				}
+				for (const key in page[simpledefault]) {
+					if (key.includes(objName) && lang.value !== 'en_us') {
+						retour.push({"key":key, "text":page[simpledefault][key], "path": simpledefault});
+					}
+				}
+				return retour;
+			} else {
+				objName = filetype + "." + id + "." + type
+				if (page[simplepath] !== undefined) {
+					if (page[simplepath][objName] !== undefined) {
+						retour.push(page[simplepath][objName]);
+					}
+				} 
+				if (page[defaultchap] !== undefined) {
+					if (page[defaultchap][objName] !== undefined) {
+						retour.push(page[defaultchap][objName]);
+					}
+				} 
+				if (page[simpledefault] !== undefined) {
+					if (page[simpledefault][objName] !== undefined  && lang.value !== 'en_us') {
+						retour.push(page[simpledefault][objName]);
+					}
+				}
+				return SNBT_Text(retour.join('\n'));
+			}
+		} else {
+			simplepath = filepath.replace(/\/quests\/(.*)(\/.*)?/gimv, "\/quests\/lang\/" + lang.value + "\/" + solo );
+			simpledefault = filepath.replace(/\/quests\/(.*)(\/.*)?/gimv, "\/quests\/lang\/en_us\/" + solo );
+			simplepath = simplepath.replace(/chapter_groups/gimv, "chapter_group"); // not named the same, bug probably
+			objName = filetype + "." + id + "." + type
+			if (page[simplepath] !== undefined) {
+				return SNBT_Text(page[simplepath][objName]);
+			} 
+			if (page[simpledefault] !== undefined) {
+				return SNBT_Text(page[simpledefault][objName]);
+			}
+		}
+	} else {
+		simplepath = lang.value
+		let re = new RegExp(String.raw`/${lang.text}`, "giv");
+		let defaultpath = simplepath.replace(re, "/en_us");
+		if (type === undefined) { // && DEBUG
+			objName = filetype + "." + id 
+			for (const key in page[simplepath]) {
+				//console.log(key);
+				if (key.includes(objName)) {
+					retour.push({"key":key, "text":page[simplepath][key]});
+				}
+			}
+			return retour;
+		} else {
+			objName = filetype + "." + id + "." + type
+			if (page[simplepath][objName] !== undefined) {
+				if (page[simplepath][objName] instanceof Array) {
+					return SNBT_Text(page[simplepath][objName].join('\n'));
+				} else {
+					return SNBT_Text(page[simplepath][objName]);
+				}
+			}
+			if (page[defaultpath][objName] !== undefined) {
+				if (page[defaultpath][objName] instanceof Array) {
+					return SNBT_Text(page[defaultpath][objName].join('\n'));
+				} else {
+					return SNBT_Text(page[defaultpath][objName]);
+				}
+			}
+		}
+	}
+} 
+
+/*
+/ SVG is poor in text content, just text no html in it so we strip everything
+/ simple wrapper for the above function
+/
+/ 
+/ @input : filetype, id, type, filepath
+/
+*/
+function SNBTinSvg(filetype, id, type, filepath) {
+	let string = getLang(filetype, id, type, filepath);
+	return string.textContent;
+}
+
+/*
+/ Get Pack name from lang file and set it
+/ and put them in the div
+/ 
+/
+/ @use : byId
+*/
+function getName() {
+	let infos = byId("packtitle")
+	infos.innerHTML = "";
+	infos.appendChild(addToDom("h1", getLang("file", "0000000000000001", "title", Object.keys(page)[5], "file.snbt")));
+	infos.parentElement.style.display = "inline";
+}
+
+/*
+/ Set Chapter name from lang file
+/ and put them in the div
+/ 
+/
+/ @use : byId
+*/
+function setChapName(chapname) {
+	let infos = byId("chaptertitle")
+	infos.innerHTML = "";
+	infos.appendChild(addToDom("h2", chapname));
+}
+// ========== USER INPUT STUFF ==========
+
+/*
+/ On click of a chapter this draw the image.
+/ and put it in the <div svg>
+/ @define : curChap
+/ 
+/ @input : id
+/ @use : page
+*/
+async function chapter_click(id) {
+	write_message("Rendering Quest, loading images take a while" ,5)
+	closequest();
+	curChap = page[id];
+	setChapName(getLang("chapter",curChap.id,"title", id));
+	curChap.filepath = id;
+	var svgSize = 10000;
+	svg.innerHTML = "";
+	const frag = new SVG.Fragment()
+	const group = frag.group()
+	const sizem = 30
+	const spacem = 60
+	if (curChap.images) {
+		for (const image of curChap.images) {
+			let b64 = ImgMap.get(image.image);
+			//console.log(b64);
+			let height = SNBT_Values(image.height ?? "1") * sizem;
+			let width = SNBT_Values(image.width ?? "1") * sizem;
+			let rotation = SNBT_Values(image.rotation ?? "0");
+			let bg = group.image(null).attr({"href":b64, "width":width, "height":height});
+			bg.center(SNBT_Values(image.x) * spacem + (svgSize /2),SNBT_Values(image.y) * 50 + (svgSize /2));
+			bg.rotate(rotation);
+		}
+	}
+	let links = [];
+	let positions = {};
+
+	// QUESTS
+	for( const quest of curChap.quests) {
+		var x = SNBT_Values(quest.x) * spacem + (svgSize /2);
+		var y = SNBT_Values(quest.y) * spacem * 0.83 + (svgSize /2);
+		if (x > 5000 && y > 5000 && DEBUG) {
+			console.log(quest)
+		}
+		var size = SNBT_Values(quest.size ?? "1") * sizem;
+		var groupq = group.group();
+		if (quest.invisible === "true" ?? 'false')  {
+			var opac = 0.3;
+		} else {
+			var opac = 1;
+		}
+		// SHAPES
+		var forme = "";
+		if (!quest.shape && curChap.default_quest_shape) {
+			quest.shape = curChap.default_quest_shape;
+		} else {
+			quest.shape = "rsquare" // default 
+			if (DEBUG) {
+				console.log("Quest : " + quest.id + " as no shape and its chapter (" + curChap.id + ") says nothing");
+			}
+		}
+		switch (quest.shape) {
+			// https://icons.getbootstrap.com/icons/ <-- get them there nice ! width="16" height="16" fill="currentColor" class="" viewBox="0 0 16 16"
+			case "octagon" :
+				forme = groupq.path('M 4.54 0.146 A 0.5 0.5 0 0 1 4.893 0 h 6.214 a 0.5 0.5 0 0 1 0.353 0.146 l 4.394 4.394 a 0.5 0.5 0 0 1 0.146 0.353 v 6.214 a 0.5 0.5 0 0 1 -0.146 0.353 l -4.394 4.394 a 0.5 0.5 0 0 1 -0.353 0.146 H 4.893 a 0.5 0.5 0 0 1 -0.353 -0.146 L 0.146 11.46 A 0.5 0.5 0 0 1 0 11.107 V 4.893 a 0.5 0.5 0 0 1 0.146 -0.353 z').size(16,16);
+				break;
+			case "square" : 
+				forme = groupq.rect(size, size);
+				break;
+			case "rsquare":
+				forme = groupq.path('M 2 0 a 2 2 0 0 0 -2 2 v 12 a 2 2 0 0 0 2 2 h 12 a 2 2 0 0 0 2 -2 V 2 a 2 2 0 0 0 -2 -2 z').size(16,16);
+				break;
+			case "circle" : 
+				forme = groupq.circle(size);
+				break;
+			case "diamond" : 
+				forme = groupq.path('M 6.95 0.435 c 0.58 -0.58 1.52 -0.58 2.1 0 l 6.515 6.516 c 0.58 0.58 0.58 1.519 0 2.098 L 9.05 15.565 c -0.58 0.58 -1.519 0.58 -2.098 0 L 0.435 9.05 a 1.48 1.48 0 0 1 0 -2.098 z').size(16,16);
+				break;
+			case "pentagon" : 
+				forme = groupq.path('m 16 7 A 0.5 0.5 0 0 0 15.736 6.285 L 8.316 0.257 a 0.5 0.5 0 0 0 -0.631 0 L 0.264 6.286 a 0.5 0.5 0 0 0 -0.162 0.538 l 2.788 8.827 a 0.5 0.5 0 0 0 0.476 0.349 h 9.268 a 0.5 0.5 0 0 0 0.476 -0.35 Z').size(16,16);
+				break;
+			case "hexagon" : 
+				forme = groupq.path('M 8.5 0.134 a 1 1 0 0 0 -1 0 l -6 3.577 a 1 1 0 0 0 -0.5 0.866 v 6.846 a 1 1 0 0 0 0.5 0.866 l 6 3.577 a 1 1 0 0 0 1 0 l 6 -3.577 a 1 1 0 0 0 0.5 -0.866 V 4.577 a 1 1 0 0 0 -0.5 -0.866 z').size(16,16);
+				break;
+			case "heart" : 
+				forme = groupq.path('M 8 15 C -7.333 4.868 3.279 -3.04 7.824 1.143 q 0.09 0.083 0.176 0.171 a 3 3 0 0 1 0.176 -0.17 C 12.72 -3.042 23.333 4.867 8 15').size(16,16);
+				break;
+			case "gear" : 
+				forme = groupq.path('M 9.796 1.343 c -0.527 -1.79 -3.065 -1.79 -3.592 0 l -0.094 0.319 a 0.873 0.873 0 0 1 -1.255 0.52 l -0.292 -0.16 c -1.64 -0.892 -3.433 0.902 -2.54 2.541 l 0.159 0.292 a 0.873 0.873 0 0 1 -0.52 1.255 l -0.319 0.094 c -1.79 0.527 -1.79 3.065 0 3.592 l 0.319 0.094 a 0.873 0.873 0 0 1 0.52 1.255 l -0.16 0.292 c -0.892 1.64 0.901 3.434 2.541 2.54 l 0.292 -0.159 a 0.873 0.873 0 0 1 1.255 0.52 l 0.094 0.319 c 0.527 1.79 3.065 1.79 3.592 0 l 0.094 -0.319 a 0.873 0.873 0 0 1 1.255 -0.52 l 0.292 0.16 c 1.64 0.893 3.434 -0.902 2.54 -2.541 l -0.159 -0.292 a 0.873 0.873 0 0 1 0.52 -1.255 l 0.319 -0.094 c 1.79 -0.527 1.79 -3.065 0 -3.592 l -0.319 -0.094 a 0.873 0.873 0 0 1 -0.52 -1.255 l 0.16 -0.292 c 0.893 -1.64 -0.902 -3.433 -2.541 -2.54 l -0.292 0.159 a 0.873 0.873 0 0 1 -1.255 -0.52 z').size(16,16);
+				break;
+			case "none" :
+				forme = groupq.rect(size, size);
+				break;
+			default:
+				console.log('Unknown shape', quest.shape)
+		}
+		/*var radial = forme.gradient('radial', function(add) {
+			add.stop(0, questColors.quest_gradient_start)
+			add.stop(1, questColors.quest_gradient_end)
+		})*/
+		forme.fill({color: questColors.quest_fill, opacity: opac});
+		forme.stroke(questColors.quest_gradient_start);
+		forme.size(size);
+		forme.center(x,y);
+		positions[quest.id] = {"cx": forme.cx(), "cy": forme.cy()};
+		// Title (not in game but lack of image)
+		if (getLang('quest',quest.id, 'title', id) !== undefined) { 
+			groupq.text(SNBTinSvg('quest',quest.id, 'title', id)).font({ fill: questColors.quest_font, family: 'Calibri', size: "0.8em" }).center(x,y);
+		}
+		groupq.id = quest.id;
+		// Events
+		groupq.on('click', quest_click, quest);
+		groupq.on('mouseover', quest_hoover, quest);
+		groupq.on('mouseout', unlink_hilight, quest);
+		// Deps buildup
+		if (quest.dependencies) {
+			positions[quest.id]["deps"] = quest.dependencies;
+			for (const link of quest.dependencies) {
+				links[link] = quest.id
+			}
+		}
+	}
+	// LINES
+	var groupline = group.group();
+	for (const position in positions) {
+		let xystart = positions[position];
+
+		for (const dep in xystart.deps) {
+			let xyend = positions[xystart.deps[dep]];
+			if (xyend) {
+				groupline.line(xystart.cx, xystart.cy, xyend.cx, xyend.cy)
+					.stroke({ color: questColors.quest_gradient_start, opacity: 0.6, width: 2 })
+					.attr({"class" : position + " " + xystart.deps[dep] + " quest_link"});
+			} else {
+				if (DEBUG) {
+					console.log("Trying to draw quest that outside scope" + xystart.deps[dep]);
+				}
+			}
+		}
+	}
+	//group.move(0,0)
+	let fsize = group.bbox(); //.size(fsize.width, fsize.height)
+	var fdraw = SVG()
+		.addTo('#svg')
+		.attr({"width":"100%", "height":"100%", "preserveAspectRatio":"xMidYMid meet"}) //,"wiewBox":"0 0 " + fsize.width + " " + fsize.height 
+		.viewbox(0, 0, fsize.width, fsize.height)
+		.panZoom({ zoomMin: 0.5, zoomMax: 20 });
+	fdraw.add(group.move(0,0), 0);
+}
+
+/*
+/ On the click of a quest, call the overlay a fill it with info
+/ @define : curQuest
+/ 
+/ @input : on_click
+/ @use : page, curChap, questoverlay
+*/
+function quest_click(id) {
+	if (typeof this.id !== "undefined") {
+		_id = this.id;
+	} else {
+		_id = id;
+	}
+	curQuest = curChap.quests.filter((arr) => arr.id === _id)[0];
+	console.log(curQuest);
+
+	for (const line in page) {
+		if (page[line].id === curChap.id) {
+			curQuest.filepath = line;
+			break;
+		}
+	}
+	let domQuest = byId("quest");
+	domQuest.innerHTML = ""
+	unlink_hilight();
+	//dependencies
+	if (curQuest.dependencies) {
+		let deps = [];
+		for( const dep_key of curQuest.dependencies) {
+			let linked_quest = allQuest[dep_key];
+			let opt = false;
+			if (linked_quest.filepath === curQuest.filepath) {
+				if (linked_quest.raw.length === 0 ) {
+					opt = addToDom("option", dep_key, "quest_deps_link")
+				} else {
+					opt = addToDom("option", linked_quest.formated, "quest_deps_link")
+				}
+			} else {
+				let txt = addToDom("span");
+				if (linked_quest.raw.length === 0 ) {
+					txt.appendChild(dep_key);
+				} else {
+					txt.appendChild(linked_quest.formated);
+				}
+				txt.appendChild(addToDom("p", "[" + page[linked_quest.filepath].id + "]")); 
+				opt = addToDom("option", txt , "quest_deps_link")
+			}
+			if (opt) {
+				deps.push(opt);
+				opt.addEventListener('click', (evt) => open_quest(dep_key, linked_quest.filepath, evt));
+			}
+		}
+		domQuest.append(addToDom("select", deps, "quest_dependencies"));
+	}
+	//Title
+	if (getLang('quest',curQuest.id, 'title', curQuest.filepath) !== undefined) { 
+			domQuest.append(addToDom("h1",getLang('quest',curQuest.id, 'title', curQuest.filepath)));
+	}
+	// Tasks
+	if (curQuest.tasks) {
+		domQuest.append(addToDom("div",getTasks(curQuest.tasks),"tasks"));
+	}
+	// Rewards
+	if (curQuest.rewards) {
+		domQuest.append(addToDom("div",getRewards(curQuest.rewards),"rewards"));
+	}
+	// Subtitle
+	if (getLang('quest',curQuest.id, 'subtitle', curQuest.filepath) !== undefined) { 
+			domQuest.append(addToDom("h2",getLang('quest',curQuest.id, 'subtitle', curQuest.filepath)));
+	}
+	// Quest desc
+	if (getLang('quest',curQuest.id, 'quest_desc',  curQuest.filepath) !== undefined) {
+		domQuest.append(addToDom("p",getLang('quest',curQuest.id, 'quest_desc',  curQuest.filepath), "quest_desc"));
+	}
+	if (DEBUG) {
+		domQuest.append(addToDom("pre",JSON.stringify(curQuest, null, 2)));
+		domQuest.append(addToDom("pre",JSON.stringify(getLang('quest',curQuest.id, undefined, curQuest.filepath), null, 2)));
+	}
+	link_tree(curQuest.id);
+	questoverlay.style.display="block"
+	window.addEventListener('mouseup', clickout);
+}
+
+function open_quest(quest, filepath, evt) {
+	if (curChap.filepath !== filepath) {
+		chapter_click(filepath);
+	}
+	quest_click(quest);
+	byId("searchresult").innerHTML = ""
+}
+
+function search_quest() {
+	const result = byId("searchresult");
+	const input = byId("searchbox").value
+	const search = new RegExp(RegExp.escape(input), "i")
+
+	result.innerHTML = ""
+	if (input.length > 2) {
+		for (const [key, quest] of Object.entries(allQuest)) {
+			let retour = false; 
+			if (quest.raw.search(search) > 0) {
+				retour = result.appendChild(addToDom("p", quest.formated));
+			}
+			if (key.search(search) > 0) {
+				retour = result.appendChild(addToDom("p", quest.formated));
+			}
+			if (retour) {
+				retour.addEventListener('click', (evt) => open_quest(key, quest.filepath, evt));
+			}
+		}
+		
+	}
+}
+/*
+/ Get linked quest or the whole tree 
+/
+/ 
+/ @input : quest_id(from), bool getChild
+/ @use : showTree
+*/
+function link_tree(from, getChild = true) {
+	const list = document.getElementsByClassName(from);
+	if (list.length > 0) {
+		for (const line of list) {
+			let attrs_ = line.classList;
+			if (!attrs_.contains("quest_link_hl")) {
+				if (attrs_.contains(from)) {
+					if (attrs_[0] === from) {
+						attrs_.add("quest_link_hl");
+						if (showTree.checked) {
+							link_tree(attrs_[1], false);
+						}
+					} else if (attrs_[1] === from) {
+						if (getChild) {
+							attrs_.add("quest_link_hl");
+						}
+						
+					}
+				}
+			}
+		}
+	}
+}
+
+/*
+/ Unmark linked quest or the whole tree (recursive because they stick)
+/
+/ 
+/ @input : on_ 
+/ @use : showTree
+*/
+function unlink_hilight() {
+	const list = document.getElementsByClassName('quest_link_hl');
+	if (list.length > 0) {
+		for (const line of list) {
+			//1 
+			let attrs = line.classList;
+			while (attrs.contains("quest_link_hl")) {
+				attrs.remove("quest_link_hl");
+			}
+		}
+	unlink_hilight();
+	}
+	
+}
+/*
+/ Close the quest overlay and clean the svg
+/ 
+/ 
+/ @input : on_click, questoverlay
+*/
+function closequest() {
+	questoverlay.style.display="none"
+	unlink_hilight();
+}
+
+function clickout(event) {
+    if (event.target !== questoverlay && !questoverlay.contains(event.target)) {
+		questoverlay.style.display="none"
+		window.removeEventListener("mouseup", clickout);
+	}
+}
+
+/*
+/ Get the id of the quest the cursor is hoovering over.
+/ 
+/ 
+/ @input : mosehover
+/ @use : curChap
+*/
+function quest_hoover() {
+	let curHoov = curChap.quests.filter((arr) => arr.id === this.id)[0];
+	unlink_hilight();
+	link_tree(curHoov.id);
+}
+
+/*
+/ Open the gallery of stored images in storage
+/ 
+/ 
+/ @input : on_click
+*/
+function showGallery() {
+	write_message("Opening gallery, rendering take time",8);
+	const gallery = byId('galery')
+	byId('galeryoverlay').style.display="block";
+	for (let [key, value] of ImgMap.entries()) {
+		let child = gallery.appendChild(addToDom("img", null, null , null ,null, value, key));
+		child.style.height = "32px";
+	}
+}
+
+/*
+/ Close the galery and clean it
+/ 
+/ 
+/ @input : on_click
+*/
+function closegallery() {
+	const gallery = byId('galeryoverlay')
+	gallery.style.display="none"
+	byId('galery').innerHTML = "";
+	unlink_hilight();
+}
+
+/*
+/ Change the lang of the display
+/ 
+/ 
+/ @input : on_change
+*/
+function changeLang() {
+	write_message("Changing language" ,2)
+	byId("groups").innerHTML = "";
+	byId("svg").innerHTML = "";
+	showchapters();
+}
+// ========== FUNCTION TO RENDER QUEST RELATED CONTENT ==========
+/*
+/ Render the tasks off the overlayed quest the html way
+/ 
+/ 
+/ @input : tasks
+*/
+function getTasks(tasks) {
+	let out = [];
+	out.push(addToDom("h3", "Tasks","tasks_title"));
+	for ( const task of tasks) {
+		switch(task.type) {
+			case 'item' :
+				if (task.item.components) {
+					out.push(addToDom("abbr", task.item.count + " x " + task.item.id, "task_item",null ,JSON.stringify(task.item.components,null,2)));
+				} else {
+					out.push(addToDom("p", task.item.count + " x " + task.item.id, "task_item", task.id)); 
+				}
+				break;
+			case 'xp' :
+				out.push(addToDom("p", "Collect " + task.xp + " xp", "task_xp", task.id)); 
+				break;
+			case 'advancement' :
+				out.push(addToDom("p", task.advancement, "task_advancement", task.id)); 
+				break;
+			case 'kill' :
+				out.push(addToDom("p", "Kill " + SNBT_Values(task.value) + " x " + task.entity, "task_kill", task.id)); 
+				break;
+			case 'checkmark' :
+				out.push(addToDom("p", "Checkmark", "task_checkmark", task.id)); 
+				break;
+			case 'custom' :
+				out.push(addToDom("pre", JSON.stringify(task,null, 2), "task_custom", task.id)); 
+				break;
+			case 'xp_levels' :
+				out.push(addToDom("p", "Collect " + task.xp_levels + "level of xp", "task_xp_level", task.id)); 
+				break;
+			case 'dimension' :
+				out.push(addToDom("p", "Travel to " + task.dimension , "task_dimension", task.id)); 
+				break;
+			case 'stat' :
+				out.push(addToDom("p", "Reach or exceed " + task.statistic, "task_stat", task.id)); 
+				break;
+			case 'location' :
+				out.push(addToDom("p", "Travel to " + task.location , "task_location", task.id)); 
+				break;
+			case 'observation' :
+				out.push(addToDom("p", "Observe this block/entity" + task.block , "task_observation", task.id)); 
+				break;
+			case 'biome' :
+				out.push(addToDom("p", "Travel to " + task.biome , "task_biome", task.id)); 
+				break;
+			case 'structure' :
+				out.push(addToDom("p", "Find a " + task.structure , "task_structure", task.id)); 
+				break;
+			case 'stage' :
+				out.push(addToDom("p", "Game stages " + task.stage , "task_structure", task.id)); 
+				break;
+			case 'fluid' :
+				out.push(addToDom("p", "Obtain fluid " + task.structure , "task_structure", task.id)); 
+				break;
+			case 'forge_energy' :
+				out.push(addToDom("p", "Generate " + SNBT_Values(task.value) + " amount of Forge Energy" , "task_structure", task.id)); 
+				break;
+			default :
+				console.log("Task type Unknown : " + task.type);
+				break;
+		}
+	}
+	return out;
+}
+
+/*
+/ Same as above for rendering Rewards of a quest
+/ Thanks to the stranger mentionned below for the dec2hex function (voodoo magic)
+/
+/ 
+/ @input : rewards
+/ @use : rewards_loot, curQuest
+*/
+function getRewards(rewards) {
+	let out = [];
+	out.push(addToDom("h3", "Rewards","rewards_title"));
+	for ( const reward of curQuest.rewards) {
+		switch(reward.type.trim()) {
+			case 'item' :
+				out.push(addToDom("p", reward.item.count + " x " + reward.item.id, "reward_item", reward.id)); 
+				break;
+			case 'xp' :
+				out.push(addToDom("p", reward.xp + " xp", "reward_xp", reward.id)); 
+				break;
+			case 'random' :
+				let table_id = dec2hex(SNBT_Values(reward.table_id)).toUpperCase().padStart(16, "0");
+				out.push(lootTables(rewards_loot[table_id], null ,table_id));
+				//out.push(addToDom("pre", JSON.stringify(rewards_loot[table_id],null, 2), "reward_rand", table_id));
+				break;
+			case 'loot' :
+				let loot_id = dec2hex(SNBT_Values(reward.table_id)).toUpperCase().padStart(16, "0");
+				out.push(lootTables(rewards_loot[loot_id],null,  loot_id));
+				//out.push(addToDom("pre", JSON.stringify(rewards_loot[loot_id],null, 2), "reward_loot", loot_id));
+				break;
+			case 'xp_levels' :
+				out.push(addToDom("p", reward.xp_levels + " xp level", "reward_xp_level", reward.id)); 
+				break;
+			case 'choice' :
+				let choice_id = dec2hex(SNBT_Values(reward.table_id)).toUpperCase().padStart(16, "0");
+				out.push(lootTables(rewards_loot[choice_id],'choice', choice_id));
+				break;
+			case 'all' :
+				let all_id = dec2hex(SNBT_Values(reward.table_id)).toUpperCase().padStart(16, "0");
+				out.push(lootTables(rewards_loot[all_id],'all', all_id));
+				break;
+			case 'command' :
+				if (typeof reward.feedback_message !== "undefined" ) {
+					out.push(addToDom("p", "Play a command to say : " + reward.feedback_message , "reward_command", reward.id)); 
+				} else {
+					// Silent Command
+					//out.push(addToDom("p", reward.command , "reward_command", reward.id)); 
+				}
+				break;
+			case 'custom' :
+				out.push(addToDom("pre", JSON.stringify(reward, null, 2) , "reward_custom", reward.id)); 
+				break;
+			case 'toast' :
+				out.push(addToDom("p", reward.toast , "reward_toast", reward.id)); 
+				break;
+			case 'stage' : // probably the same as below
+				out.push(addToDom("p", "Grants stage " + reward.stage , "reward_stage", reward.id)); 
+				break;
+			case 'gamestage' :
+				out.push(addToDom("p", "Grants stage " + reward.stage , "reward_stage", reward.id)); 
+				break;
+			default :
+				console.log("Reward type Unknown : " + reward.type);
+				break;
+		}
+	}
+	return out;
+}
+
+/*
+/ Get Associated loot tables of the overlayed quest, call by the two above function 
+/ this render and calculate the chances of each item.
+/ 
+/ @input : reward_loot_id
+/ @use : curQuest
+*/
+function lootTables(reward_loot, weights = undefined, loot_id) {
+	let class_ = '';
+	if (weights) {
+		if (weights === "choice") {
+			class_ = "choice"
+		}
+		if (weights === "all") {
+			class_ = "all"
+		}
+	} else {
+		class_ = "loot"
+	}
+	let out = addToDom("div", "", "reward_" + class_);
+	let total = 0, nb = 0;
+	let arr = [];
+	if (getLang('reward_table',loot_id, 'title',  curQuest.filepath, "reward_table.snbt") !== undefined) {
+		out.append(addToDom("p",getLang('reward_table',loot_id, 'title',  curQuest.filepath, "reward_table.snbt"), "reward_table"));
+	}
+	for ( const reward_key in reward_loot.rewards) {
+		const reward = reward_loot.rewards[reward_key]
+		var count = SNBT_Values(reward.count ?? "1");
+		var weight = SNBT_Values(reward.weight ?? "1");
+		var bonus = reward.random_bonus ?? 1;
+		total += count * weight;
+		nb++;
+		let number = ''
+		if (bonus > 1) {
+			number = count + "-" + count * bonus
+		} else {
+			number = reward.item.count
+		}
+		var string = number + " x " + reward.item.id
+		arr.push({"count" : count, "weight" : weight, "string" : string, "total" : count * weight, "id" : reward_loot.id});
+		
+	}
+	for (const arrkey in arr) {
+		const reward = arr[arrkey];
+		let complement = "";
+		if (weights) {
+			switch (weights) {
+				case  'choice' :
+					complement = " [choice]";
+				break;
+				case 'all' :
+					complement = " [100%]";
+				break;
+			}
+		} else {
+			complement = " [" + Math.round((reward.total / total) * 1000)/10 + "%]"
+		}
+		out.append(addToDom("p", reward.string + complement, reward.id));
+	}
+	return out;
+}
+
+
+// ========== GENERAL HELPER FUNCTION ==========
+/*
+/ Write simple message with a timer
+/ to fill the void while loading
+/ 
+/ @input : text, duration (in s)
+*/
+function write_message(text,time) {
+	var newNode = document.createElement('div');
+	newNode.innerHTML = text;
+	const domMessage = document.getElementById("messages");
+	setTimeout(() => {
+		newNode.remove()
+		domMessage.style.display = "none";
+	}, time*1000);
+	domMessage.style.display = "block"
+	domMessage.appendChild(newNode);
+}
+
+/*
+/ Helper wrapper to document.createElement
+/
+/ 
+/ @input : html_elem, text, className, id, title
+/
+*/
+function addToDom(element, text, className, Id, title, src, alt, style) {
+	let classNam = (typeof className === 'undefined') ? null : className;
+	let Id_ = (typeof Id === 'undefined') ? null : Id;
+	let text_ = (typeof text === 'undefined') ? null : text;
+	let title_ = (typeof title === 'undefined') ? null : title;
+	let src_ = (typeof src === 'undefined') ? null : src;
+	let alt_ = (typeof alt === 'undefined') ? null : alt;
+	let style_ = (typeof style === 'undefined') ? null : style;
+	const elem = document.createElement(element);
+	if (text) {
+		if (text instanceof Object) {
+			if (text instanceof Array) {
+				for (tex in text) {
+					elem.appendChild(text[tex]);
+				}
+			} else {
+				elem.appendChild(text);
+			}
+		} else {
+			elem.innerText = text;
+		}
+	}
+	if (classNam) { 
+		elem.className = classNam;
+	}
+	if (Id_) {
+		elem.id = Id_;
+	}
+	if (title_) {
+		elem.setAttribute("title",title_);
+	}
+	if (src_) {
+		elem.setAttribute("src",src_);
+	}
+	if (alt_) {
+		elem.setAttribute("alt",alt_);
+	}
+	if (style_) {
+		elem.setAttribute("style",style_);
+	}
+	return elem;
+}
+
+// ========== REGEX AND FORMATINGS OF VALUES ==========
+/*
+/ Regex to transform path into ResourceLocation (nbt)
+/
+/ 
+/ @input : file_path
+/
+*/
+function getResourceLocation(string) {
+	// Regex replace Path with ResourceLocation
+	return string.replace(/.*\/assets\/(\w+)\/([^"]+).*/ig, "$1:$2");
+}
+
+// ========== SNBT RELATED CONTENT ==========
+/*
+/ Simple SNBT values, JS simly doesnt care. Long, Int, Double,...
+/
+/ 
+/ @input : value_string
+/
+*/
+function SNBT_Values(text) {
+	return text.replace(/[^\d\.\-]/gimv, "");
+}
+
+/*
+/ FTB SNBT Rich text parser
+/
+/ Thanks to him for the html span magic and the css that comes with it.
+/ mcformat v1.3.0 | MIT License | github.com/yusshu/mcformat 
+/
+/ 
+/ @input : value_string
+/
+*/
+function SNBT_Text(text) {
+	let unescaped = text.replace(/\\{2,4}/gm,' \\').replace(/\\&/gm,'&');
+	const formatter = new MCFormat({ colorChar: '&', allowMagic: true });
+	// Handle QuestRichText features (images, actions, ...) (TODO)
+
+	let elems = "";
+	let multiligne = unescaped.split(/\r?\n|\r|\n| \\\\n|\\n/gmiv)
+	if (multiligne.length > 1) {
+		elems = addToDom("span");
+		//multiligne = multiligne.split(/,(?=\{)|(?<=\}),/gmiv);
+		for ( const line of multiligne) {
+			if (line.startsWith("[") || line.startsWith("{\\") ) {
+				//console.log("Text Component: " + line);
+				let txtComp = formatTextComponenent(line)
+				elems.appendChild(txtComp);
+			} else if (line.startsWith("{")) {
+				//console.log("Rich editor:" + line);
+				let txtRich = formatRichEditor(line)
+				elems.appendChild(txtRich);
+			} else {
+				let formated = formatter.format(line)
+				let removeRegex = /(\{(?:\{.*\}|[^\{])*?\})/gm
+				if (removeRegex.test(line)) {
+					//console.log(" matched inline Rich text : " + line);
+					let futursplit = line.replace(removeRegex, '\\nUBERIMPROBABLESTRING\\n');
+					let inlinemulti = futursplit.split(/\\n/gmiv);
+					let n = 0;
+					let inlinematch = line.match(removeRegex);
+					for (const inline of inlinemulti) {
+						if (inline === "UBERIMPROBABLESTRING") {
+							let richinline = formatRichEditor(inlinematch[n])
+							if (richinline !== "") {
+								elems.appendChild(richinline);
+							}
+							n++;
+						} else {
+							elems.appendChild(formatter.format(inline));
+						}
+						elems.appendChild(addToDom("br"));
+					}
+					
+				} else {
+					elems.appendChild(formatter.format(line));
+				}
+			}
+			elems.appendChild(addToDom("br"));
+		}
+	} else {
+		if (unescaped.startsWith("[") || unescaped.startsWith("{\\") ) {
+			//console.log("Text Component: " + unescaped);
+			elems = formatTextComponenent(unescaped);
+		} else if (unescaped.startsWith("{")) {
+			elems = formatRichEditor(unescaped);
+			//console.log("Rich editor:" + unescaped);
+		} else {
+			elems = formatter.format(unescaped);
+		}
+	}
+
+	return elems;
+}
+
+function formatTextComponenent(input) {
+	input = input.replace(/\\{1,4}/g,'')
+	let json = JSON.parse(input);
+	
+	function returnSpan(json) {
+		let classlist = "";
+		let style = "";
+		let text = "";
+		let click = undefined;
+		let hover = undefined;
+		if (json instanceof Object) {
+			for (const key of Object.keys(json)) {
+				// If its just text
+				if (key === "text") {
+					text += json.text;
+					continue;
+				}
+				// If theres a class or anything to add
+				let authorized = ["bold","italic","underlined","strikethrough","obfuscated","color"] 
+				if (authorized.includes(key)) {
+					if (json[key] instanceof String) {
+						if (json[key].startsWith('#')) {
+							style = " color:" + json[key] + ";";
+							classlist += " mc-root";
+						} else {
+							classlist += " mc-" + json[key];
+						}
+					} else {
+						classlist += " mc-" +key;
+					}
+					continue;
+				}
+				if (key === "clickEvent") {
+				// TODO something
+					
+					if (json[key].action === "change_page") {
+						click = (evt) => open_quest(json[key].value, allQuest[json[key].value].filepath, evt);
+					} else {
+						console.log("unknown click event" ,  json[key]);
+					}
+					continue;
+				}
+				if (key === "hoverEvent") {
+				// TODO something
+					if (json[key].action === "show_text") {
+						hover = {"key":"data-tooltip","value": json[key].contents};
+					} else {
+						console.log("unknown hover event" ,  json[key]);
+					}
+					continue;
+				}
+				// Doit ne pas marcher, ca reroune un span.
+				if (key === "extra") {
+					for (const jsonExtra of json.extra) {
+						text += formatTextComponenent(jsonExtra.stringify);
+					}
+				}
+			}
+		} else {
+			text = json;
+		}
+		// Replace
+		classlist = classlist.replace(/dark_acqua/gm, "dark_aqua");
+		let out = addToDom('span', text, classlist, null, null, null, null, style);
+		if (click) {
+			out.addEventListener('click', click);
+		} 
+		if (hover) {
+			out.setAttribute(hover.key, hover.value);
+		}
+		return out;
+	}
+	
+	if (json instanceof Array) {
+		let elems = addToDom('span');
+		elems.classList.add("mc-root");
+		for (const elem of json) {
+			elems.appendChild(returnSpan(elem));
+		}
+		return elems;
+	} else {
+		return returnSpan(json);
+	}
+}
+
+function formatRichEditor(text) {
+	let splited = text.replace(/\{(.*)\}/giv, '$1').split(' ');
+	let out = "";
+	switch (splited[0]) {
+		case '@pagebreak' :
+			out = addToDom("hr");
+			break;
+		case 'longimpossibletodoiffutureisneeded' :
+			//image:atm:textures/questpics/chap2/atmstar_layer4.png width:125 height:100 align:center
+			//console.log("image : " + splited);
+			break;
+		default :
+			let richfRegex = /(.*?):/gm;
+			if (richfRegex.test(text)) {
+				let feature = splited[0].match(richfRegex);
+				if (feature) {
+					switch (feature[0]) {
+						case 'image:' :
+							let obj = splited[0].replace(feature[0], '');//processSNBT(text); // as lazy JSON parser
+							//let b64 = await imgget(obj);
+							let b64 = ImgMap.get(obj);
+							out = addToDom("img", null, null, null, null, b64, obj);   //element, text, className, Id, title, src, alt, style
+						break;
+						default :
+							console.log("unknown RichEditorFeature that match {(.*?): : " + text);
+					}
+				}
+			} else {
+				console.log("unknown RichEditorFeature : " + text);
+			}
+	}
+	return out;		
+}
+//// -------- SNBT START ---------
+/*
+/ FTB SNBT PARSER for minecraft FTB.Library mod, or FTBQuest mod for minecraft(c)
+/
+/ Regex are split between config file and lang file, there are to mani intricate things
+/ Regex are detailed below the function
+/ Parser fails until it cannot process anymore with error one the processeced result but it should a leat console.log something
+/
+/ Files are from the mod Author, respect their copyright.
+/ 
+/ @input : ftb_snbt, filepath
+/
+*/
+ function processSNBT(text,p) {
+    let tokens = [];
+    let sortie = {};
+    for (line of text.split('\n')) {
+        line = line.replaceAll('\t','').trim();
+        //console.log(line);
+        // ligne vide
+        if (line === "") { continue; }
+        // Comment
+        if (line[0] === '#') { continue; }
+        // good line
+		if (/^.+\/lang\/.*$/i.test(p)) {
+			tokens = tokens.concat(processlang(line));
+		} else {
+			tokens = tokens.concat(processLigne(line));
+		}
+    }
+
+    if (tokens !== []) {
+    var i = -1;
+
+    function main() {
+        let v = {};
+        let temp = undefined
+        while ( i++ < tokens.length - 1 ) {
+	    var token = tokens[i][0].trim();
+            if (i>=1) {
+                var prev = tokens[i-1][0].trim();
+            }
+            if (i <= (tokens.length - 2) ) {
+               var next = tokens[i+1][0].trim();
+            }
+            switch(token) {
+            case "{" :
+                //console.log("Nouvel Objet")
+                if (i>=2) {
+                    if (prev === ":" ) {
+                        // Objet dans un objet
+                        v[tokens[i-2][0].trim()] = main();
+                        continue;
+                    } 
+                } 
+				let obj = main();
+				if ( Object.keys(v).length === 0 ) {
+					if (i < (tokens.length - 2)) {
+						if (tokens[i+1][0].trim() === "{") { //next is from past instance i as kept updating
+							v = [obj];
+						} else {
+							v = obj;
+						}
+					} else {
+						v = obj;
+					}
+				} else {
+					if (v instanceof Array) {
+						v.push(obj);
+					} else {
+						v = [v];
+						v.push(obj);
+					}
+				}
+                continue;
+            case "}" :
+                return v;
+            case "[" :
+                //console.log("debut array");
+                if (prev === ":") {
+                    var arrName = tokens[i-2][0].trim();
+                }
+                temp = main();
+				if (arrName !== undefined) {
+				     //console.log("ajout d'un objet dans array")
+                    v[arrName] = [];
+					if (temp instanceof Array) {
+						v[arrName].push(...temp);
+						temp = undefined;
+					} else {
+						if (Object.keys(temp).length !== 0) {
+							v[arrName].push(temp);
+							temp = undefined;
+						}
+					}
+					continue;
+				}
+                continue;
+            case "]" :
+                if (arrName !== undefined) {
+                    v[arrName] = temp;
+                    return v;
+                } else {
+                    // array dans un array
+					if (temp !== undefined) {
+						if (Object.keys(v).length !== 0) {
+							temp.push(v);
+						}
+						return temp;
+					} else {
+						return v;
+					}
+                }
+			//osef
+			case "," :
+				continue;	
+			case ":" :
+				continue;
+            // default 
+            default:
+				//si oui
+				// le suivant est un ":" ?
+				if (next !== ":")  {
+					// si le suivant est un ","
+					if (next === "," || next === "]" || prev === "[") {
+						//si oui 
+						if (prev !== ":") {
+							// c'est une des valeurs de temp[] ?
+							if (!temp) {
+								temp = [];
+							}
+							temp.push(token);
+							continue;
+						}
+						// ou c'est de la synthaxe perdue
+						if (prev === ":") {
+						// la virgule etait a la fin de la ligne
+							v[tokens[i-2][0].trim()] = token;
+							continue;
+						}
+					} else {
+						//c'est la valeur de l'objet precedent
+						//console.log("ajouter valeur")
+						if (temp instanceof Array || temp instanceof Object ) {
+							if (prev === ":") {
+								// c'est un objet dans un array
+								v[tokens[i-2][0].trim()] = token;
+								continue;
+							} else {
+								// c'est une valeur simple
+								temp.push(token);
+								continue;
+							}
+						} else {
+							// Clé valeur d'un objet
+							if (token !== "" || tokens[i-2][0].trim() !== "" ) {
+								v[tokens[i-2][0].trim()] = token;
+							} else {
+								if (DEBUG) {
+									console.log("empty token : " + i + " token : " + prev + token + next + " ; fichier : " + p);
+								}
+							}
+							continue;
+						}
+					}
+				}
+
+            }
+		}
+		if ((i) !== tokens.length && DEBUG ) {
+			console.log(p + " unexpected end : " + tokens.length + " tokens mais i = " + i);
+		}
+		return v;
+    }
+
+    sortie = main();
+    }
+    return sortie;
+}
+
+/*
+/ Regex to filter out all values (ranged to) and key as well as /;:.(){}\
+/ This one is for config files
+/ 
+/ @input : text
+/
+*/
+function processLigne(value) {
+    const toks = value.matchAll(/(?:\+|-)?(?:\w+)(?:(?: |\/|;|:|\.|\)|\()(?:\w+|~|\+|\))(?:∞)?)*|(?: (?=\\"))|\{|\}|,|\[|\]|:/gv);
+    return [...toks];
+}
+
+/*
+/ Regex to filter out all values (ranged to) and key as well as /;:.(){}\
+/ This one is for the lang files
+/ 
+/ @input : text
+/
+*/
+function processlang(value) {
+	const toks = value.matchAll(/(?<=").+(?=")|\{|\[| ?\}|\]|,|: |(?:\+|-)?[\w.;∞]+(?: ~ )?(?:(?:\+|-)?[\w;.∞]+)?|(?<=(?:\s"|\["))(?=")/gv);
+	return [...toks];
+}
+
+/*
+/ Regex explanation
+/
+\{|\[| ?\}|\]|,|: # general string
+|
+(?<=(?:\s"|\["))(?=")#"" ou [""] valeur vide
+|
+(?<= \\")(?=\\")# \"\"
+|
+(?<=").+?(?:(?:\\{2}").+)+(?=")#"bla \\\"bla\\\"blo" 
+|
+(?<=").+\\"(?=")#"\"blablabla ba\"" 
+|
+(?<!\\")(?<=").+?(?=")# single QUOTE \"Click here to start the questline!\"
+|
+(?<=").+(?:(?:\\").+)*(?=")# "The \"Furnace\" is an upgraded version of a vanilla Furnace that can be upgraded for faster speed and better efficiency."
+|
+(?:\+|-)?[\w.;∞]+(?: ~ )?(?:(?:\+|-)?[\w;.∞]+)?#Reste des valeurs et range
+*/
+//// -------- SNBT END ---------
+
+/*
+/ Start the show as soon as you load files
+/ 
+/
+*/
+addEventListener('load', () => { 
+      byId('files').onchange = async e => { if (e.target.files?.length) await loadFiles([...e.target.files]);
+    };
+});
+
+
+/*
+/ Function, Classes, Code from Github witch fits the needs.
+/  
+/ 
+/ @input : myneed
+*/
+
+// https://stackoverflow.com/questions/57976898/how-to-get-mime-type-from-base-64-string
+function detectMimeType(b64) {
+	// https://en.wikipedia.org/wiki/List_of_file_signatures
+	var signatures = {
+	  //JVBERi0: "application/pdf",
+	  R0lGODdh: "image/gif",
+	  R0lGODlh: "image/gif",
+	  iVBORw0KGgo: "image/png",
+	  "/9j/": "image/jpg",
+	  RIFF : "image/webp"
+	};
+  for (var s in signatures) {
+    if (b64.indexOf(s) === 0) {
+      return signatures[s];
+    }
+  }
+}
+// Random stranger : https://stackoverflow.com/questions/18626844/convert-a-large-integer-to-a-hex-string-in-javascript <- thank you
+function dec2hex(str){ // .toString(16) only works up to 2^53
+    var dec = str.toString().split(''), sum = [], hex = [], i, s
+    while(dec.length){
+        s = 1 * dec.shift()
+        for(i = 0; s || i < sum.length; i++){
+            s += (sum[i] || 0) * 10
+            sum[i] = s % 16
+            s = (s - sum[i]) / 16
+        }
+    }
+    while(sum.length){
+        hex.push(sum.pop().toString(16))
+    }
+    return hex.join('')
+}
+
+/*! mcformat v1.3.0 | MIT License | github.com/yusshu/mcformat */
+
+const MCFormat = function ({ colorChar = '&', allowMagic = true }) {
+
+    if (allowMagic) {
+
+        /*
+         * Object binding char width to the characters
+         * that have that width.
+         */
+        const charsByLength = {
+            100: '¸',
+            200: 'i.,:;!¡|',
+            300: 'íl·•­\'',
+            400: 'Iît[] ¤¸',
+            500: 'fk*(){}"¢><',
+            600: 'AÄÅÆBCÇDEFGHJKLMNÑOØPQRSTUÜVWXYZaáâàåæbcçdeêëghjmnñoóôöòøpqrsuúûüùvwxyÿzΩ0123456789?¿#/\\-—_«»$ƒ£+÷=±¬∑%♀&§^⌂',
+            700: '~@¶®',
+            800: '≈∞♂♠♣♥♦',
+            900: '√☺☻☼'
+        };
+
+        /*
+         * Similar to 'charsByLength', but reversed, it
+         * binds the characters to their length
+         */
+        const lengthByChars = {};
+
+        // copy information from charsByLength to lengthByCHars
+        for (const length in charsByLength) {
+            const chars = charsByLength[length];
+            for (const c of chars) {
+                lengthByChars[c] = length;
+            }
+        }
+
+        /**
+         * Obfuscates the text elements inside the
+         * given node
+         * @param {Node} node
+         */
+        function obfuscate(node) {
+            for (const child of node.childNodes) {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    const content = child.textContent;
+                    let newContent = [];
+                    for (let i = 0; i < content.length; i++) {
+                        const char = content.charAt(i);
+                        const length = lengthByChars[char] || 400;
+                        const chars = charsByLength[length];
+
+                        newContent.push(chars.charAt(Math.floor(Math.random() * chars.length)));
+                    }
+                    child.textContent = newContent.join('');
+                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                    obfuscate(child);
+                }
+            }
+        }
+
+        // finally set the interval that updates all the "magic" elements
+        setInterval(() => {
+            for (const element of document.getElementsByClassName("mc-magic")) {
+                obfuscate(element);
+            }
+        }, 50);
+    }
+
+    /**
+     * Object containing all color characters
+     * and their format
+     */
+    const COLORS = {
+        '0': { name: 'black' },
+        '1': { name: 'dark-blue' },
+        '2': { name: 'dark-green' },
+        '3': { name: 'dark-aqua' },
+        '4': { name: 'dark-red' },
+        '5': { name: 'dark-purple' },
+        '6': { name: 'gold' },
+        '7': { name: 'gray' },
+        '8': { name: 'dark-gray' },
+        '9': { name: 'blue' },
+        'a': { name: 'green' },
+        'b': { name: 'aqua' },
+        'c': { name: 'red' },
+        'd': { name: 'light-purple' },
+        'e': { name: 'yellow' },
+        'f': { name: 'white' },
+        'r': { name: 'reset' },
+
+        // formats (they don't override previous element format)
+        'm': { name: 'strikethrough', pass: true },
+        'o': { name: 'italic', pass: true },
+        'l': { name: 'bold', pass: true },
+        'n': { name: 'underline', pass: true },
+        'k': { name: 'magic', pass: true },
+    };
+
+    const HEX_CHARS = "0123456789abcdef";
+
+    this.format = function (input) {
+
+        /** The root element, will contain all the other elements */
+        const root = document.createElement("span");
+        root.classList.add("mc-root"); // add class
+
+        let content = [];
+
+        let next = undefined; // the next element to append to root
+        let active = root; // the last used element
+
+        for (let i = 0; i < input.length; i++) {
+            const current = input.charAt(i);
+
+            if (current !== colorChar) {
+                // not a color char, just push it
+                content.push(current);
+                continue;
+            }
+
+            const nextIndex = i + 1;
+
+            if (nextIndex >= input.length) {
+                // last character, just push it
+                content.push(current);
+                break;
+            }
+
+            const code = input.charAt(nextIndex);
+            const format = COLORS[code];
+
+            if (format) {
+                const element = document.createElement("span");
+                element.classList.add(`mc-${format.name}`);
+
+                active.innerText = content.join(''); // set the content to the previous element
+                content = []; // clear the content
+
+                if (format.pass) {
+                    active.appendChild(element);
+                } else {
+                    if (next !== undefined && next !== root) {
+                        root.appendChild(next);
+                    }
+                    next = element;
+                }
+
+                active = element;
+                i++;
+            } else if (code === "#"
+                && (nextIndex + 6 < input.length)) {
+
+                const color = ['#'];
+                let found = true;
+
+                // check for hex colors
+                for (let j = 0; j < 6; j++) {
+                    const index = nextIndex + j + 1;
+                    const char = input.charAt(index).toLowerCase();
+                    const value = HEX_CHARS.indexOf(char);
+
+                    if (value === -1) {
+                        found = false;
+                        break;
+                    }
+
+                    // push the color
+                    color.push(char);
+                }
+
+                if (found) {
+                    const element = document.createElement("span");
+                    element.style.color = color.join('');
+                    element.classList.add('mc-hex');
+
+                    active.innerText = content.join(''); // set the content to the previous element
+                    content = []; // clear the content
+
+                    if (next !== undefined && next !== root) {
+                        root.appendChild(next);
+                    }
+                    next = element;
+                    active = element;
+                    // process next
+                    i = nextIndex + 6;
+                }
+            } else {
+                // not a code, push
+                content.push(current);
+            }
+        }
+
+        // check for remaining content
+        if (next !== undefined && next !== root) {
+            root.appendChild(next);
+        }
+
+        if (content.length > 0) {
+            active.innerText += content.join('');
+        }
+
+        return root;
+    }
+};
+
+
+/** end */
+
+
+
+/* Test data for parser*/
+
+text = `{
+item: { components: { "mekanism:energy": { energy_containers: [L;9223372036854775807L] }, "mekanism:side_config": { config: { energy: { eject: 1b, side: { back: "output", bottom: "output", front: "output", left: "output", right: "output", top: "output" } }, items: { side: { back: "input", bottom: "input", front: "output", left: "input", right: "input", top: "input" } } } } }, count: 1, id: "mekanism:creative_energy_cube" 
+    # Boolean test 3
+    # Default: false
+    "test 3": false,
+
+    # Default: true
+    test_1: true
+
+    # Boolean test 2
+    # Default: true
+    test_2: true
+	empty_var: [ ]
+
+    # Group comment test
+    # Line 2
+    sub_test: {
+        # Default: false
+        boolean: false
+
+        # Default: 0.5d
+        # Range: 0.0d ~ 1.0d
+        double: 1.0d
+
+        # Default: 50
+        Range: 30 ~ +∞
+        int: 30
+
+        # Default: "hello"
+        string: "hello"
+
+        # Default: [ 1, 2, 3 ]
+        list: [ 1, 2, 3 ]
+    }
+    images: [
+		{
+			height: 2.0d
+			image: "atm:textures/questpics/chap3/creative_chap4.png"
+			rotation: -90.0d
+			width: 10.415584415584416d
+			x: -1.0d
+			y: -4.0d
+			list: ["1"
+			"2"
+			{test: 1}
+			]
+		}
+		{
+			height: 2.0d
+			image: "atm:textures/questpics/chap3/creative_creative.png"
+			rotation: -90.0d
+			width: 9.246753246753247d
+			x: 12.5d
+			y: -4.0d
+		}
+    ]
+}`;
+text2 = `{images: [
+		{
+			height: 2.0d
+			image: "atm:textures/questpics/chap3/creative_chap4.png"
+		}
+		{
+			height: 4.0d
+			image: "atm:textures/questpics/chap3/creative_creative.png"
+            test: ["nested array"
+			"25"]
+		}
+    ]}`;
+lang_test = `{
+	chapter.4EBB2171D5A3AAAC.title: "Forbidden \\& Arcanus"
+	chapter.5103E2D95685ADFF.title: "&aChapter 3&r: &6The ATM Star"
+	chapter.5712300EF4E5E846.title: "Pylons"
+
+	quest.000C1ECD781F3F81.quest_desc: ["&2&lNature&r is made for using the Earth to our advantage by &2Poisoning&r and &2Weakening&r our enemies! Just like what Big Corporations do to the Earth itself! \\n&2&lNature's&r Focus Material is &2Poisonous Potato&r. \\n\\nThe &2Scrolls&r are &aLight Green&r with &2Dark Green&r text."]
+	quest.002163B909070CF8.quest_desc: [
+		"Allows you to see details about certain blocks/fluid, even through walls.\\n"
+		"{image:atm:textures/questpics/pneumaticcraft/block_tracker.png width:150 height:150 align:center}"
+	]
+	quest.002163B909070CF8.quest_subtitle: "Max: 1"
+	quest.002B8F2DE2CB4D2C.quest_desc: ["Hold a Shield in your off hand and the &7Scroll of Strengthening&r in your main and hold Right Click."]
+	quest.002B8F2DE2CB4D2C.title: "Strong Shield"
+	quest.002D65E4D7E8F62B.title: "Tier 2 Grader Catalyst"
+	quest.00453FF528AA0B1C.quest_desc: ["Lonestar Skeletons are hostile Mobs that can spawn anywhere. \\n\\nThey have 10 Hearts and will throw their Sword at you to attack you. \\n\\nOn death they can drop Bones, Swamp Silver Nuggets, Shattered Swords, and the drops added by Corail for Undead Mobs."]
+	quest.0052E5592A6BBEC1.quest_desc: [
+		"This is &2&lMinecraft&r, I can't tell you how to build..."
+		"{@pagebreak}"
+		"But I can give you tips for it!"
+	]
+	quest.00F00B0B66059996.quest_desc: [
+		"Alright another Multiblock! This one requiring more ports than any Naval Base has seen! \\n\\nWe'll need Source Inputs, Fluid Input and Outputs, and Item Input and Outputs. \\n\\nNow we need to follow a long list of stuff so listen carefully! \\n\\nFirst, we'll need Unrefined Liquid Souls which comes from using a Fluid Extractor (from &lIF&r) on a Soul Tree. \\n\\nThen, we can use the &b&lRunic Crucible&r to combine Souls, Unrefined Liquid Souls, and &dSource&r to get Liquid Souls! \\n\\nNext, we'll use the Liquid Souls, more &dSource&r, and some Items from &l&5Mekanism&r to finally craft &5Obsidiansteel&r."
+		"{@pagebreak}"
+		"{image:atm:textures/questpics/chap3/creative_crucible1.png width:100 height:100 align:center}"
+		"First layer of the &l&bRunic Crucible&r has a &6Gilded Chiseled Polished Darkstone&r in the middle, around it is &9Polished Darkstone&r. Then, on the sides we'll have upside down &9Polished Darkstone Stairs&r, with Rune Blocks on the corners."
+		"The &9Polished Darkstone blocks&r in the middle layer are where we'll place our Hatches!"
+	]
+}`;
+quest_test  = `{
+	default_hide_dependency_lines: false
+	default_quest_shape: "square"
+	filename: "chapter_2_the_star"
+	group: "2084F3F6FB861C5B"
+	icon: {
+		id: "allthetweaks:atm_star"
+	}
+	id: "5103E2D95685ADFF"
+	images: [
+		{
+			height: 3.0d
+			image: "atm:textures/questpics/industrialforegoing/ether_gas_setup.png"
+			rotation: 0.0d
+			width: 3.4029850746268657d
+			x: 6.0d
+			y: 16.0d
+		}
+		{
+			height: 2.0d
+			image: "generatorgalore:block/copper_generator_top_on"
+			rotation: 0.0d
+			width: 2.0d
+			x: 12.0d
+			y: 10.0d
+			mixed: [1, "{nestedobj: "y"}"]
+		}
+   ]
+   components: { "mekanism:energy": { energy_containers: [L;9223372036854775807L] }, "mekanism:side_config": { config: { energy: { eject: 1b, side: { back: "output", bottom: "output", front: "output", left: "output", right: "output", top: "output" } }, items: { side: { back: "input", bottom: "input", front: "output", left: "input", right: "input", top: "input" } } } } }, count: 1, id: "mekanism:creative_energy_cube" 
+    # Boolean test 3
+}
+`
+//console.log(processSNBT(text));
+</script>
+</html>
